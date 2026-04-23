@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
+
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
