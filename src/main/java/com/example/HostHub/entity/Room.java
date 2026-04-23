@@ -52,10 +52,4 @@ public class Room {
     private LocalDateTime updatedAt;
 
 
-
-
-
-
-
-
 }
