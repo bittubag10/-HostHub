@@ -6,6 +6,7 @@ import com.example.HostHub.entity.Room;
 import com.example.HostHub.exception.ResourseNotFoundException;
 import com.example.HostHub.repository.HotelRepository;
 import com.example.HostHub.repository.RoomRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -21,6 +22,7 @@ public class RoomServiceImpl implements RoomService{
 
     private final RoomRepository roomRepository;
     private final HotelRepository hotelRepository;
+    private final InventoryService inventoryService;
     private final ModelMapper modelMapper;
 
     @Override
@@ -32,6 +34,10 @@ public class RoomServiceImpl implements RoomService{
         Room room=modelMapper.map(roomDTO, Room.class);
         room.setHotel(hotel);
         room = roomRepository.save(room);
+
+        if (hotel.getActive()){
+             inventoryService.initializeRoomForAYear(room);
+        }
 
         return modelMapper.map(room, RoomDTO.class);
     }
@@ -57,15 +63,34 @@ public class RoomServiceImpl implements RoomService{
         return modelMapper.map(room, RoomDTO.class);
     }
 
-    @Override
-    public void deleteRoomById(Long roomId) {
-        log.info("Deleting the room with id : {} ",roomId);
-        boolean exists=roomRepository.existsById(roomId);
-        if (!exists){
-            throw new ResourseNotFoundException("Room not found with id: "+roomId);
-        }
-        roomRepository.deleteById(roomId);
+//    @Override
+//    @Transactional
+//    public void deleteRoomById(Long roomId) {
+//        log.info("Deleting the room with id : {} ",roomId);
+//        Room room=roomRepository.findById(roomId)
+//                .orElseThrow(()->new ResourseNotFoundException("Room not found with id: "+roomId));
+//
+//
+//        inventoryService.deleteAllInventories(room);
+//        roomRepository.deleteById(roomId);
+//
+//    }
+@Override
+@Transactional
+public void deleteRoomById(Long roomId) {
+    Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResourseNotFoundException("Room not found"));
 
+    Hotel hotel = room.getHotel();
 
+    inventoryService.deleteAllInventories(room);
+    roomRepository.deleteById(roomId);
+
+    // Agar room delete hone ke baad hotel mein 0 rooms bache, toh hotel deactivate kar do
+    if (hotel.getRooms().size() <= 1) { // <=1 kyunki abhi list se room delete nahi hua memory mein
+        hotel.setActive(false);
+        hotelRepository.save(hotel);
+        log.info("Hotel {} deactivated because no rooms left", hotel.getId());
     }
+}
 }

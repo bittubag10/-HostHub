@@ -1,10 +1,7 @@
 package com.example.HostHub.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -22,6 +19,7 @@ import java.time.LocalDateTime;
                 name = "unique_hotel_room_date",
                 columnNames = {"hotel_id","room_id","date"}
         ))
+@Builder
 public class Inventory {
 
     @Id
