@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
                 columnNames = {"hotel_id","room_id","date"}
         ))
 @Builder
-public class Inventory {
+public class  Inventory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,6 +56,7 @@ public class Inventory {
     private Boolean closed;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp

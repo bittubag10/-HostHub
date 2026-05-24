@@ -47,6 +47,7 @@ public class Booking {
     private LocalDate checkOutDate;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp

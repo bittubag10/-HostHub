@@ -34,6 +34,7 @@ public class Hotel {
     private String[] amenities;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp

@@ -2,6 +2,7 @@ package com.example.HostHub.service;
 
 
 import com.example.HostHub.dto.HotelDTO;
+import com.example.HostHub.dto.HotelInfoDto;
 
 public interface HotelService {
 
@@ -16,4 +17,5 @@ public interface HotelService {
    void activateHotel(Long hotelId);
 
 
+    HotelInfoDto getHotelInfoById(Long hotelId);
 }
