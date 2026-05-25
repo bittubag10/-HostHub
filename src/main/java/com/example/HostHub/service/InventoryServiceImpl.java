@@ -37,6 +37,7 @@ public class InventoryServiceImpl implements InventoryService{
                     .hotel(room.getHotel())
                     .room(room)
                     .bookCount(0)
+                    .reservedCount(0)
                     .city(room.getHotel().getCity())
                     .date(today)
                     .price(room.getBasePrice())
@@ -55,7 +56,7 @@ public class InventoryServiceImpl implements InventoryService{
     @Override
     @Transactional
     public void deleteAllInventories (Room room) {
-        LocalDate today=LocalDate.now();
+        log.info("Deleting the inventories of room with id: {}",room.getId());
         inventoryRepository.deleteByRoom(room);
 
     }
