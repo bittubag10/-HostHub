@@ -2,6 +2,7 @@ package com.example.HostHub.controller;
 
 import com.example.HostHub.dto.HotelDTO;
 import com.example.HostHub.dto.HotelInfoDto;
+import com.example.HostHub.dto.HotelPriceDto;
 import com.example.HostHub.dto.HotelSearchRequest;
 import com.example.HostHub.service.HotelService;
 import com.example.HostHub.service.InventoryService;
@@ -20,8 +21,8 @@ public class HotelBrowseController {
     private final HotelService hotelService;
 
     @GetMapping("/search")
-    public ResponseEntity<Page<HotelDTO>> searchHotel(@RequestBody HotelSearchRequest hotelSearchRequest){
-        Page<HotelDTO> page=inventoryService.searchHotel(hotelSearchRequest);
+    public ResponseEntity<Page<HotelPriceDto>> searchHotel(@RequestBody HotelSearchRequest hotelSearchRequest){
+        var page=inventoryService.searchHotel(hotelSearchRequest);
         return ResponseEntity.ok(page);
     }
 
