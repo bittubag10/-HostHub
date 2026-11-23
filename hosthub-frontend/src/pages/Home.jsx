@@ -199,6 +199,7 @@ export default function Home() {
               >
                 <option value="PRICE_ASC">Price: Low to High</option>
                 <option value="PRICE_DESC">Price: High to Low</option>
+                <option value="RATING_DESC">Rating: High to Low</option>
                 <option value="NAME_ASC">Name: A-Z</option>
               </select>
             </div>

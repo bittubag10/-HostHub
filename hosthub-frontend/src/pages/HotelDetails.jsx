@@ -19,6 +19,12 @@ export default function HotelDetails() {
   const [error, setError] = useState(null)
   const [booking, setBooking] = useState(false)
 
+  // Review states
+  const [reviews, setReviews] = useState([])
+  const [reviewPage, setReviewPage] = useState(0)
+  const [reviewTotalPages, setReviewTotalPages] = useState(0)
+  const [loadingReviews, setLoadingReviews] = useState(false)
+
   const initial = location.state?.searchParams
   const [dates, setDates] = useState({
     checkInDate: initial?.startDate || todayStr(),
@@ -38,6 +44,24 @@ export default function HotelDetails() {
       active = false
     }
   }, [hotelId])
+
+  useEffect(() => {
+    let active = true
+    setLoadingReviews(true)
+    api
+      .get(`/hotels/${hotelId}/reviews?page=${reviewPage}&size=5`)
+      .then((res) => {
+        if (active && res.data) {
+          setReviews(res.data.content || [])
+          setReviewTotalPages(res.data.totalPages || 0)
+        }
+      })
+      .catch(() => {})
+      .finally(() => active && setLoadingReviews(false))
+    return () => {
+      active = false
+    }
+  }, [hotelId, reviewPage])
 
   const startBooking = async (room) => {
     if (!user) {
@@ -85,8 +109,17 @@ export default function HotelDetails() {
 
       <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
         <div>
-          <h1 className="font-display text-3xl text-ivory">{hotel.name}</h1>
-          <p className="text-muted">{hotel.city} · {hotel.contactInfo?.address}</p>
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-3xl text-ivory">{hotel.name}</h1>
+            {hotel.reviewCount > 0 ? (
+              <span className="inline-flex items-center gap-1 text-sm text-brass-light font-medium bg-surface px-2.5 py-0.5 rounded-full border border-brass/20">
+                ★ {Number(hotel.averageRating || 0).toFixed(1)} <span className="text-muted text-xs">({hotel.reviewCount} {hotel.reviewCount === 1 ? 'review' : 'reviews'})</span>
+              </span>
+            ) : (
+              <span className="text-xs text-muted/70 bg-surface px-2 py-0.5 rounded-full border border-brass/10">★ New</span>
+            )}
+          </div>
+          <p className="text-muted mt-1">{hotel.city} · {hotel.contactInfo?.address}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {(hotel.amenities || []).map((a) => (
@@ -165,6 +198,72 @@ export default function HotelDetails() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Guest Reviews Section */}
+      <div className="mt-14 pt-8 border-t border-brass/10">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <h2 className="font-display text-2xl text-ivory">Guest Reviews</h2>
+            {hotel.reviewCount > 0 && (
+              <span className="text-sm font-mono text-brass-light">
+                ★ {Number(hotel.averageRating || 0).toFixed(1)} ({hotel.reviewCount})
+              </span>
+            )}
+          </div>
+        </div>
+
+        {loadingReviews && <p className="text-xs text-muted">Loading reviews…</p>}
+
+        {!loadingReviews && reviews.length === 0 && (
+          <p className="text-sm text-muted bg-surface/40 border border-brass/10 rounded-lg p-6 text-center">
+            No reviews yet. Be the first verified guest to review this hotel after your stay!
+          </p>
+        )}
+
+        <div className="space-y-4">
+          {reviews.map((rev) => (
+            <div key={rev.id} className="bg-surface/60 border border-brass/10 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm text-ivory">{rev.userName || 'Verified Guest'}</span>
+                  <span className="text-xs text-brass-light font-mono bg-brass/10 border border-brass/20 rounded px-1.5 py-0.5">
+                    {'★'.repeat(rev.rating)}
+                  </span>
+                </div>
+                {rev.createdAt && (
+                  <span className="text-xs text-muted font-mono">
+                    {new Date(rev.createdAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              {rev.comment && <p className="text-sm text-muted mt-2 leading-relaxed">{rev.comment}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* Review Pagination */}
+        {reviewTotalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-6 text-xs font-mono">
+            <button
+              onClick={() => setReviewPage((p) => Math.max(0, p - 1))}
+              disabled={reviewPage === 0}
+              className="px-3 py-1.5 rounded border border-brass/20 text-ivory hover:border-brass/50 disabled:opacity-40"
+            >
+              ← Previous
+            </button>
+            <span className="text-muted">
+              Page {reviewPage + 1} of {reviewTotalPages}
+            </span>
+            <button
+              onClick={() => setReviewPage((p) => Math.min(reviewTotalPages - 1, p + 1))}
+              disabled={reviewPage >= reviewTotalPages - 1}
+              className="px-3 py-1.5 rounded border border-brass/20 text-ivory hover:border-brass/50 disabled:opacity-40"
+            >
+              Next →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

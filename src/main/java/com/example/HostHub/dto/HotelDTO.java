@@ -34,4 +34,7 @@ public class HotelDTO {
     private HotelContactInfo contactInfo;
 
     private Boolean active = true;
+
+    private Double averageRating = 0.0;
+    private Integer reviewCount = 0;
 }

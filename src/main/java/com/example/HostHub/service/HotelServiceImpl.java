@@ -288,19 +288,27 @@ public class HotelServiceImpl implements HotelService {
                     c -> c.getHotel().getName() != null ? c.getHotel().getName() : "",
                     String.CASE_INSENSITIVE_ORDER
             );
+            case "RATING_DESC" -> Comparator.comparing(
+                    c -> (c.getHotel() != null && c.getHotel().getAverageRating() != null)
+                            ? c.getHotel().getAverageRating()
+                            : (c.getAverageRating() != null ? c.getAverageRating() : 0.0),
+                    Comparator.reverseOrder()
+            );
             case "PRICE_ASC" -> Comparator.comparing(HotelPriceDto::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
             default -> Comparator.comparing(HotelPriceDto::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
         };
 
-        candidates.sort(comparator);
+        List<HotelPriceDto> sortedCandidates = candidates.stream()
+                .sorted(comparator)
+                .collect(Collectors.toList());
 
         // Apply pagination
         int page = request.getPage() != null && request.getPage() >= 0 ? request.getPage() : 0;
         int size = request.getSize() != null && request.getSize() > 0 ? request.getSize() : 10;
-        int total = candidates.size();
+        int total = sortedCandidates.size();
         int start = Math.min(page * size, total);
         int end = Math.min(start + size, total);
-        List<HotelPriceDto> pageList = candidates.subList(start, end);
+        List<HotelPriceDto> pageList = sortedCandidates.subList(start, end);
 
         Pageable pageable = PageRequest.of(page, size);
         return new PageImpl<>(pageList, pageable, total);

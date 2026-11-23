@@ -173,6 +173,20 @@ class HotelSearchFilterTest {
         assertEquals("Azure Bay Resort", resultName.getContent().get(0).getHotel().getName());
         assertEquals("Boutique Palms", resultName.getContent().get(1).getHotel().getName());
         assertEquals("Coral Palace", resultName.getContent().get(2).getHotel().getName());
+
+        // Test RATING_DESC
+        hotelA.setAverageRating(3.5);
+        hotelB.setAverageRating(4.8);
+        hotelC.setAverageRating(4.2);
+        HotelSearchRequest reqRating = createBaseRequest();
+        reqRating.setSortBy("RATING_DESC");
+        when(hotelMinPriceRepository.findHotelsWithAvailableInventory(any(), any(), any(), anyInt(), anyLong()))
+                .thenReturn(List.of(dto1, dto2, dto3));
+
+        Page<HotelPriceDto> resultRating = hotelService.searchHotels(reqRating);
+        assertEquals("Boutique Palms", resultRating.getContent().get(0).getHotel().getName()); // 4.8
+        assertEquals("Coral Palace", resultRating.getContent().get(1).getHotel().getName());   // 4.2
+        assertEquals("Azure Bay Resort", resultRating.getContent().get(2).getHotel().getName()); // 3.5
     }
 
     @Test
