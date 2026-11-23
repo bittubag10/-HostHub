@@ -6,6 +6,7 @@ import com.example.HostHub.entity.Inventory;
 import com.example.HostHub.entity.Room;
 import com.example.HostHub.entity.User;
 import com.example.HostHub.exception.ResourseNotFoundException;
+import com.example.HostHub.exception.UnAuthorisedException;
 import com.example.HostHub.repository.HotelMinPriceRepository;
 import com.example.HostHub.repository.InventoryRepository;
 import com.example.HostHub.repository.RoomRepository;
@@ -117,8 +118,8 @@ public class InventoryServiceImpl implements InventoryService {
                 new ResourseNotFoundException("Room not found with this ID : " + roomId));
 
         User user = getCurrentUser();
-        if (!user.getId().equals(room.getHotel().getOwner().getId())) {
-            throw new AccessDeniedException("This user does not own this room with id : " + roomId);
+        if (room.getHotel().getOwner() == null || !user.getId().equals(room.getHotel().getOwner().getId())) {
+            throw new UnAuthorisedException("This user does not own this room with id : " + roomId);
         }
 
         if (updateInventoryRequestDto.getEndDate().isBefore(updateInventoryRequestDto.getStartDate())) {

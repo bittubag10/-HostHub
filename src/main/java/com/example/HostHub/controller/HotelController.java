@@ -74,12 +74,12 @@ public class HotelController {
 
     @GetMapping("/{hotelId}/reports")
     public ResponseEntity<HotelReportDto> getHotelReport(@PathVariable Long hotelId,
-                                                         @RequestParam(required = false)LocalDate startDate,
-                                                         @RequestParam(required = false)LocalDate endDate){
-        if (startDate == null)startDate = LocalDate.now().minusMonths(1);
-        if (endDate == null)endDate = LocalDate.now();
+                                                         @RequestParam(required = false) LocalDate startDate,
+                                                         @RequestParam(required = false) LocalDate endDate) {
+        if (startDate == null) startDate = LocalDate.now().minusDays(30);
+        if (endDate == null) endDate = LocalDate.now();
 
-        return ResponseEntity.ok(bookingService.getHotelReport(hotelId,startDate,endDate));
+        return ResponseEntity.ok(bookingService.getHotelReport(hotelId, startDate, endDate));
     }
 
     @PostMapping(value = "/{hotelId}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

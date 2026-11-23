@@ -60,8 +60,8 @@ export default function AdminInventory() {
           <input type="date" required value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className="input mt-1" />
         </div>
         <div>
-          <label className="text-[10px] uppercase tracking-widest text-muted">Surge factor</label>
-          <input type="number" step="0.01" min="1.00" required value={form.surgeFactor} onChange={(e) => setForm({ ...form, surgeFactor: e.target.value })} className="input mt-1" />
+          <label className="text-[10px] uppercase tracking-widest text-muted">Surge factor (0.5 - 5.0)</label>
+          <input type="number" step="0.05" min="0.50" max="5.00" required value={form.surgeFactor} onChange={(e) => setForm({ ...form, surgeFactor: e.target.value })} className="input mt-1" />
         </div>
         <label className="flex items-center gap-2 text-sm text-muted">
           <input type="checkbox" checked={form.closed} onChange={(e) => setForm({ ...form, closed: e.target.checked })} className="accent-brass" />

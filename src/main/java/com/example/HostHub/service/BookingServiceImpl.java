@@ -3,6 +3,7 @@ package com.example.HostHub.service;
 import com.example.HostHub.Enum.BookingStatus;
 import com.example.HostHub.dto.BookingDto;
 import com.example.HostHub.dto.BookingRequest;
+import com.example.HostHub.dto.DailyRevenueDto;
 import com.example.HostHub.dto.GuestDto;
 import com.example.HostHub.dto.HotelReportDto;
 import com.example.HostHub.entity.*;
@@ -377,32 +378,89 @@ public class BookingServiceImpl implements BookingService {
 
         User user = getCurrentUser();
 
-        log.info("Generating report for hotel with ID : {}", hotelId);
+        log.info("Generating report for hotel with ID : {} from {} to {}", hotelId, startDate, endDate);
 
         if (hotel.getOwner() == null || !user.getId().equals(hotel.getOwner().getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("You are not the owner of hotel with ID : " + hotelId);
+            throw new UnAuthorisedException("You are not the owner of hotel with ID : " + hotelId);
+        }
+
+        if (startDate == null) startDate = LocalDate.now().minusDays(30);
+        if (endDate == null) endDate = LocalDate.now();
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
         }
 
         LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
 
         List<Booking> bookings = bookingRepository.findByHotelAndCreatedAtBetween(hotel, startDateTime, endDateTime);
 
-        Long totalConfirmedBooking = bookings.stream()
-                .filter(booking -> booking.getBookingStatus() == BookingStatus.CONFIRMED)
+        // 1. Booking counts
+        long confirmedBookingsCount = bookings.stream()
+                .filter(b -> b.getBookingStatus() == BookingStatus.CONFIRMED)
                 .count();
 
-        BigDecimal totalRevenueOfConfirmedBooking = bookings.stream()
-                .filter(booking -> booking.getBookingStatus() == BookingStatus.CONFIRMED)
+        long canceledBookingsCount = bookings.stream()
+                .filter(b -> b.getBookingStatus() == BookingStatus.CANCELED || b.getBookingStatus() == BookingStatus.EXPIRED)
+                .count();
+
+        // 2. Revenue calculation
+        BigDecimal totalRevenue = bookings.stream()
+                .filter(b -> b.getBookingStatus() == BookingStatus.CONFIRMED && b.getAmount() != null)
                 .map(Booking::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal avgRevenue = BigDecimal.ZERO;
-        if (totalConfirmedBooking > 0 && totalRevenueOfConfirmedBooking.compareTo(BigDecimal.ZERO) > 0) {
-            avgRevenue = totalRevenueOfConfirmedBooking.divide(BigDecimal.valueOf(totalConfirmedBooking), RoundingMode.HALF_UP);
+        BigDecimal averageBookingValue = BigDecimal.ZERO;
+        if (confirmedBookingsCount > 0 && totalRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            averageBookingValue = totalRevenue.divide(BigDecimal.valueOf(confirmedBookingsCount), 2, RoundingMode.HALF_UP);
         }
 
-        return new HotelReportDto(totalConfirmedBooking, totalRevenueOfConfirmedBooking, avgRevenue);
+        // 3. Occupancy calculation: (totalBookedRoomNights / totalAvailableCapacityNights) * 100
+        List<Inventory> inventories = inventoryRepository.findByHotelAndDateBetween(hotel, startDate, endDate);
+        long totalBookedRoomNights = 0L;
+        long totalCapacityNights = 0L;
+        for (Inventory inv : inventories) {
+            if (inv.getBookCount() != null) totalBookedRoomNights += inv.getBookCount();
+            if (inv.getTotalCount() != null) totalCapacityNights += inv.getTotalCount();
+        }
+
+        Double occupancyRate = 0.0;
+        if (totalCapacityNights > 0) {
+            double rate = ((double) totalBookedRoomNights / totalCapacityNights) * 100.0;
+            occupancyRate = Math.round(rate * 10.0) / 10.0;
+        }
+
+        // 4. Daily revenue breakdown
+        java.util.Map<LocalDate, List<Booking>> confirmedByDate = bookings.stream()
+                .filter(b -> b.getBookingStatus() == BookingStatus.CONFIRMED && b.getCreatedAt() != null)
+                .collect(Collectors.groupingBy(b -> b.getCreatedAt().toLocalDate()));
+
+        List<DailyRevenueDto> dailyRevenueBreakdown = new java.util.ArrayList<>();
+        LocalDate curr = startDate;
+        while (!curr.isAfter(endDate)) {
+            List<Booking> dayList = confirmedByDate.getOrDefault(curr, java.util.Collections.emptyList());
+            BigDecimal dayRevenue = dayList.stream()
+                    .map(Booking::getAmount)
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            long dayCount = dayList.size();
+
+            dailyRevenueBreakdown.add(DailyRevenueDto.builder()
+                    .date(curr)
+                    .revenue(dayRevenue)
+                    .bookingsCount(dayCount)
+                    .build());
+            curr = curr.plusDays(1);
+        }
+
+        return HotelReportDto.builder()
+                .confirmedBookingsCount(confirmedBookingsCount)
+                .canceledBookingsCount(canceledBookingsCount)
+                .totalRevenue(totalRevenue)
+                .averageBookingValue(averageBookingValue)
+                .occupancyRate(occupancyRate)
+                .dailyRevenueBreakdown(dailyRevenueBreakdown)
+                .build();
     }
 
     @Override

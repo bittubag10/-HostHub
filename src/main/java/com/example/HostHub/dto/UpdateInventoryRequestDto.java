@@ -1,5 +1,6 @@
 package com.example.HostHub.dto;
 
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +24,8 @@ public class UpdateInventoryRequestDto {
     private LocalDate endDate;
 
     @NotNull(message = "Surge factor is required")
-    @DecimalMin(value = "1.00", message = "Surge factor cannot be less than 1.00")
+    @DecimalMin(value = "0.50", message = "Surge factor cannot be less than 0.50")
+    @DecimalMax(value = "5.00", message = "Surge factor cannot be greater than 5.00")
     private BigDecimal surgeFactor;
 
     @NotNull(message = "Closed status is required")
