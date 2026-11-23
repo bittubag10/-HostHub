@@ -26,4 +26,8 @@ public interface HotelService {
     HotelDTO addPhotos(Long hotelId, org.springframework.web.multipart.MultipartFile[] files);
 
     HotelDTO removePhoto(Long hotelId, String photoUrl);
+
+    List<String> getAllActiveCities();
+
+    org.springframework.data.domain.Page<com.example.HostHub.dto.HotelPriceDto> searchHotels(com.example.HostHub.dto.HotelSearchRequest request);
 }

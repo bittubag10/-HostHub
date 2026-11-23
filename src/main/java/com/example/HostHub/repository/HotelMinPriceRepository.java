@@ -48,10 +48,38 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Long> {
+
+    @Query("""
+           SELECT new com.example.HostHub.dto.HotelPriceDto(p.hotel, AVG(p.price))
+           FROM HotelMinPrice p
+           JOIN p.hotel h
+           WHERE LOWER(h.city) = LOWER(:city)
+             AND h.active = true
+             AND p.date BETWEEN :startDate AND :endDate
+             AND h.id IN (
+                 SELECT i.hotel.id
+                 FROM Inventory i
+                 WHERE i.date BETWEEN :startDate AND :endDate
+                   AND i.closed = false
+                   AND (i.totalCount - i.bookCount - i.reservedCount) >= :roomsCount
+                 GROUP BY i.hotel.id, i.room.id
+                 HAVING COUNT(i.date) = :dateCount
+             )
+           GROUP BY p.hotel, h.name, h.id
+           HAVING COUNT(p.date) = :dateCount
+           """)
+    List<HotelPriceDto> findHotelsWithAvailableInventory(
+            @Param("city") String city,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("roomsCount") Integer roomsCount,
+            @Param("dateCount") Long dateCount
+    );
 
     @Query("""
                SELECT new com.example.HostHub.dto.HotelPriceDto(i.hotel, AVG(i.price))
@@ -66,7 +94,7 @@ public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Lo
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             Pageable pageable
-    ); // 🔥 FIXED: 'new' keyword lagaya aur extra params hata diye kyunki query unhe use nahi kar rahi thi!
+    );
 
     Optional<HotelMinPrice> findByHotelAndDate(Hotel hotel, LocalDate date);
 }

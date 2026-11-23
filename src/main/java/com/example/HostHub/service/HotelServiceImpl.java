@@ -2,26 +2,32 @@ package com.example.HostHub.service;
 
 import com.example.HostHub.dto.HotelDTO;
 import com.example.HostHub.dto.HotelInfoDto;
+import com.example.HostHub.dto.HotelPriceDto;
+import com.example.HostHub.dto.HotelSearchRequest;
 import com.example.HostHub.dto.RoomDTO;
 import com.example.HostHub.entity.Hotel;
 import com.example.HostHub.entity.Room;
 import com.example.HostHub.entity.User;
 import com.example.HostHub.exception.ResourseNotFoundException;
 import com.example.HostHub.exception.UnAuthorisedException;
+import com.example.HostHub.repository.HotelMinPriceRepository;
 import com.example.HostHub.repository.HotelRepository;
 import com.example.HostHub.repository.RoomRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.example.HostHub.util.AppUtils.getCurrentUser;
@@ -37,6 +43,7 @@ public class HotelServiceImpl implements HotelService {
     private final ModelMapper modelMapper;
     private final PricingUpdateService pricingUpdateService;
     private final StorageService storageService;
+    private final HotelMinPriceRepository hotelMinPriceRepository;
 
     @Override
     public HotelDTO createNewHotel(HotelDTO hotelDTO) {
@@ -207,5 +214,95 @@ public class HotelServiceImpl implements HotelService {
         }
 
         return modelMapper.map(hotel, HotelDTO.class);
+    }
+
+    @Override
+    public List<String> getAllActiveCities() {
+        log.info("Fetching all active cities");
+        return hotelRepository.findDistinctActiveCities();
+    }
+
+    @Override
+    @Transactional
+    public Page<HotelPriceDto> searchHotels(HotelSearchRequest request) {
+        if (request.getEndDate().isBefore(request.getStartDate()) || request.getEndDate().isEqual(request.getStartDate())) {
+            throw new IllegalArgumentException("Check-out date must be after check-in date");
+        }
+
+        LocalDate actualEndDate = request.getEndDate().minusDays(1);
+        long dateCount = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate());
+
+        log.info("Searching hotels in {} from {} to {} ({} nights), rooms: {}",
+                request.getCity(), request.getStartDate(), actualEndDate, dateCount, request.getRoomsCount());
+
+        List<HotelPriceDto> candidates = hotelMinPriceRepository.findHotelsWithAvailableInventory(
+                request.getCity(),
+                request.getStartDate(),
+                actualEndDate,
+                request.getRoomsCount(),
+                dateCount
+        );
+
+        // Apply price range filtering
+        if (request.getMinPrice() != null) {
+            double min = request.getMinPrice().doubleValue();
+            candidates = candidates.stream()
+                    .filter(c -> c.getPrice() != null && c.getPrice() >= min)
+                    .collect(Collectors.toList());
+        }
+        if (request.getMaxPrice() != null) {
+            double max = request.getMaxPrice().doubleValue();
+            candidates = candidates.stream()
+                    .filter(c -> c.getPrice() != null && c.getPrice() <= max)
+                    .collect(Collectors.toList());
+        }
+
+        // Apply amenities filter (case-insensitive: hotel must contain all requested amenities)
+        if (request.getAmenities() != null && !request.getAmenities().isEmpty()) {
+            List<String> requiredAmenities = request.getAmenities().stream()
+                    .filter(a -> a != null && !a.isBlank())
+                    .map(a -> a.trim().toLowerCase())
+                    .toList();
+
+            if (!requiredAmenities.isEmpty()) {
+                candidates = candidates.stream()
+                        .filter(c -> {
+                            String[] hotelAmenities = c.getHotel().getAmenities();
+                            if (hotelAmenities == null || hotelAmenities.length == 0) {
+                                return false;
+                            }
+                            Set<String> hotelSet = Arrays.stream(hotelAmenities)
+                                    .map(String::toLowerCase)
+                                    .collect(Collectors.toSet());
+                            return hotelSet.containsAll(requiredAmenities);
+                        })
+                        .collect(Collectors.toList());
+            }
+        }
+
+        // Apply sorting
+        String sortBy = request.getSortBy() != null ? request.getSortBy() : "PRICE_ASC";
+        Comparator<HotelPriceDto> comparator = switch (sortBy.toUpperCase()) {
+            case "PRICE_DESC" -> Comparator.comparing(HotelPriceDto::getPrice, Comparator.nullsLast(Comparator.reverseOrder()));
+            case "NAME_ASC" -> Comparator.comparing(
+                    c -> c.getHotel().getName() != null ? c.getHotel().getName() : "",
+                    String.CASE_INSENSITIVE_ORDER
+            );
+            case "PRICE_ASC" -> Comparator.comparing(HotelPriceDto::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
+            default -> Comparator.comparing(HotelPriceDto::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
+        };
+
+        candidates.sort(comparator);
+
+        // Apply pagination
+        int page = request.getPage() != null && request.getPage() >= 0 ? request.getPage() : 0;
+        int size = request.getSize() != null && request.getSize() > 0 ? request.getSize() : 10;
+        int total = candidates.size();
+        int start = Math.min(page * size, total);
+        int end = Math.min(start + size, total);
+        List<HotelPriceDto> pageList = candidates.subList(start, end);
+
+        Pageable pageable = PageRequest.of(page, size);
+        return new PageImpl<>(pageList, pageable, total);
     }
 }
