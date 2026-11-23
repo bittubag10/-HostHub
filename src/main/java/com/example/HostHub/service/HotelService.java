@@ -4,6 +4,8 @@ package com.example.HostHub.service;
 import com.example.HostHub.dto.HotelDTO;
 import com.example.HostHub.dto.HotelInfoDto;
 
+import java.util.List;
+
 public interface HotelService {
 
    HotelDTO createNewHotel(HotelDTO hotelDTO);
@@ -18,4 +20,6 @@ public interface HotelService {
 
 
     HotelInfoDto getHotelInfoById(Long hotelId);
+
+    List<HotelDTO> getAllHotels();
 }

@@ -40,7 +40,7 @@ public class Booking {
     private Integer roomsCount;
 
     @Column(nullable = false)
-    private LocalDate chackInDate;
+    private LocalDate checkInDate;
 
     @Column(nullable = false)
     private LocalDate checkOutDate;

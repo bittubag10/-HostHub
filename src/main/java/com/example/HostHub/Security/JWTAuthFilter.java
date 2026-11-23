@@ -41,9 +41,7 @@ public class JWTAuthFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
-            //String token = requestTokenHeader.split("Bearer")[1];
-            // 🔥 Sahi split tarika (Space ke saath split karo):
-            String token = requestTokenHeader.split("Bearer ")[1];
+            String token = requestTokenHeader.substring(7);
             Long userId = jwtService.getUserIdFromToken(token);
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -60,9 +58,8 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 
             }
             filterChain.doFilter(request, response);
-        }catch (JwtException ex){
-
-            handlerExceptionResolver.resolveException(request,response,null,ex);
+        } catch (Exception ex) {
+            handlerExceptionResolver.resolveException(request, response, null, ex);
         }
     }
 }

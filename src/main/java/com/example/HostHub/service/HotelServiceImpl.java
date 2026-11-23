@@ -18,122 +18,138 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.example.HostHub.util.AppUtils.getCurrentUser;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class HotelServiceImpl implements HotelService{
+public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
     private final InventoryService inventoryService;
     private final RoomRepository roomRepository;
     private final ModelMapper modelMapper;
+    private final PricingUpdateService pricingUpdateService;
 
     @Override
     public HotelDTO createNewHotel(HotelDTO hotelDTO) {
-        log.info("Creating a new hotel with name : {}",hotelDTO.getName());
-        Hotel hotel=modelMapper.map(hotelDTO,Hotel.class);
+        log.info("Creating a new hotel with name : {}", hotelDTO.getName());
+        Hotel hotel = modelMapper.map(hotelDTO, Hotel.class);
         hotel.setActive(false);
 
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         hotel.setOwner(user);
 
-        hotel =hotelRepository.save(hotel);
-        log.info("Created a new hotel with id : {}",hotelDTO.getId());
-        return modelMapper.map(hotel,HotelDTO.class);
+        hotel = hotelRepository.save(hotel);
+        log.info("Created a new hotel with id : {}", hotel.getId());
+        return modelMapper.map(hotel, HotelDTO.class);
     }
 
     @Override
     public HotelDTO getHotelById(Long id) {
-        log.info("Getting the hotel with id: {}",id);
-        Hotel hotel=hotelRepository.findById(id)
-                .orElseThrow(()->new ResourseNotFoundException("Hotel not found with id: "+id));
+        log.info("Getting the hotel with id: {}", id);
+        Hotel hotel = hotelRepository.findById(id)
+                .orElseThrow(() -> new ResourseNotFoundException("Hotel not found with id: " + id));
 
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        if (!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id : "+id);
 
+        if (hotel.getOwner() == null || !user.getId().equals(hotel.getOwner().getId())) {
+            throw new UnAuthorisedException("This user does not own this hotel with id : " + id);
         }
 
-        return modelMapper.map(hotel,HotelDTO.class);
-
+        return modelMapper.map(hotel, HotelDTO.class);
     }
 
     @Override
     public HotelDTO updateHotelById(Long id, HotelDTO hotelDTO) {
-        log.info("updating the hotel with id: {}",id);
-        Hotel hotel=hotelRepository.findById(id)
-                .orElseThrow(()->new ResourseNotFoundException("Hotel not found with id: "+id));
+        log.info("updating the hotel with id: {}", id);
+        Hotel hotel = hotelRepository.findById(id)
+                .orElseThrow(() -> new ResourseNotFoundException("Hotel not found with id: " + id));
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        if (!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id : "+id);
-
+        // 🔥 FIXED: Primary Key (ID) check lagaya
+        if (hotel.getOwner() == null || !user.getId().equals(hotel.getOwner().getId())) {
+            throw new UnAuthorisedException("This user does not own this hotel with id : " + id);
         }
 
-        modelMapper.map(hotelDTO,hotel);
+        modelMapper.map(hotelDTO, hotel);
         hotel.setId(id);
-       hotel= hotelRepository.save(hotel);
-       return modelMapper.map(hotel,HotelDTO.class);
+        hotel = hotelRepository.save(hotel);
+        return modelMapper.map(hotel, HotelDTO.class);
     }
 
     @Override
     @Transactional
     public void deleteHotelById(Long id) {
-        Hotel hotel=hotelRepository.findById(id)
-                .orElseThrow(()->
-                        new ResourseNotFoundException("Hotel not found with id: "+id));
+        log.info("Deleting the hotel with id: {}", id);
+        Hotel hotel = hotelRepository.findById(id)
+                .orElseThrow(() -> new ResourseNotFoundException("Hotel not found with id: " + id));
 
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        if (!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id : "+id);
-
+        // 🔥 FIXED: Primary Key (ID) check lagaya
+        if (hotel.getOwner() == null || !user.getId().equals(hotel.getOwner().getId())) {
+            throw new UnAuthorisedException("This user does not own this hotel with id : " + id);
         }
 
-        for (Room room:hotel.getRooms()){
-            inventoryService.deleteAllInventories(room);
-            roomRepository.deleteById(room.getId());
+        if (hotel.getRooms() != null) {
+            for (Room room : hotel.getRooms()) {
+                inventoryService.deleteAllInventories(room);
+                roomRepository.deleteById(room.getId());
+            }
         }
         hotelRepository.deleteById(id);
-
-
     }
 
     @Override
     @Transactional
     public void activateHotel(Long hotelId) {
-
-        log.info("Activating the hotel with id: {}",hotelId);
-        Hotel hotel=hotelRepository.findById(hotelId)
-                .orElseThrow(()->new ResourseNotFoundException("Hotel not found with id: "+hotelId));
+        log.info("Activating the hotel with id: {}", hotelId);
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourseNotFoundException("Hotel not found with id: " + hotelId));
 
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id : "+hotelId);
 
+        // 🔥 FIXED: Primary Key (ID) check lagaya
+        if (hotel.getOwner() == null || !user.getId().equals(hotel.getOwner().getId())) {
+            throw new UnAuthorisedException("This user does not own this hotel with id : " + hotelId);
         }
+
         hotel.setActive(true);
 
-        for (Room room: hotel.getRooms()){
-            inventoryService.initializeRoomForAYear(room);
+        if (hotel.getRooms() != null) {
+            for (Room room : hotel.getRooms()) {
+                inventoryService.initializeRoomForAYear(room);
+            }
         }
+        hotel = hotelRepository.save(hotel);
+        pricingUpdateService.updateHotelPrice(hotel);
     }
-
-    //public method
 
     @Override
     public HotelInfoDto getHotelInfoById(Long hotelId) {
-        Hotel hotel=hotelRepository
-                .findById(hotelId)
-                .orElseThrow(()->new ResourseNotFoundException("Hotel not found with id: "+hotelId));
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourseNotFoundException("Hotel not found with id: " + hotelId));
 
-        List<RoomDTO>rooms=
-                hotel.getRooms()
-                        .stream()
-                        .map((element)->modelMapper.map(element, RoomDTO.class))
-                        .toList();
-        return new HotelInfoDto(modelMapper.map(hotel, HotelDTO.class),rooms);
+        List<RoomDTO> rooms = hotel.getRooms()
+                .stream()
+                .map((element) -> modelMapper.map(element, RoomDTO.class))
+                .toList();
+
+        return new HotelInfoDto(modelMapper.map(hotel, HotelDTO.class), rooms);
+    }
+
+    @Override
+    public List<HotelDTO> getAllHotels() {
+        User user = getCurrentUser();
+        log.info("Getting all hotels for the admin user with ID : {}", user.getId());
+        List<Hotel> hotels = hotelRepository.findByOwner(user);
+
+        return hotels.stream()
+                .map((element) -> modelMapper.map(element, HotelDTO.class))
+                .collect(Collectors.toList());
     }
 }

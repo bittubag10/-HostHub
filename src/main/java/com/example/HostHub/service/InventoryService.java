@@ -1,10 +1,10 @@
 package com.example.HostHub.service;
 
-import com.example.HostHub.dto.HotelDTO;
-import com.example.HostHub.dto.HotelPriceDto;
-import com.example.HostHub.dto.HotelSearchRequest;
+import com.example.HostHub.dto.*;
 import com.example.HostHub.entity.Room;
 import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public interface InventoryService {
 
@@ -13,4 +13,8 @@ public interface InventoryService {
     void deleteAllInventories(Room room);
 
     Page<HotelPriceDto> searchHotel(HotelSearchRequest hotelSearchRequest);
+
+    List<InventoryDto> getAllInventoryByRoom(Long roomId);
+
+    void updateInventory(Long roomId, UpdateInventoryRequestDto updateInventoryRequestDto);
 }

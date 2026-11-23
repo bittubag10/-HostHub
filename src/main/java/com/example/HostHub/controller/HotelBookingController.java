@@ -4,6 +4,7 @@ import com.example.HostHub.dto.BookingDto;
 import com.example.HostHub.dto.BookingRequest;
 import com.example.HostHub.dto.GuestDto;
 import com.example.HostHub.service.BookingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +19,12 @@ public class HotelBookingController {
     private final BookingService bookingService;
 
     @PostMapping("/init")
-    public ResponseEntity<BookingDto> initialiseBooking(@RequestBody BookingRequest bookingRequest){
+    public ResponseEntity<BookingDto> initialiseBooking(@Valid @RequestBody BookingRequest bookingRequest){
         return ResponseEntity.ok(bookingService.initialiseBooking(bookingRequest));
     }
 
     @PostMapping("/{bookingId}/addGuests")
-    public ResponseEntity<BookingDto>addGuests(@PathVariable Long bookingId,
+    public ResponseEntity<BookingDto>addGuests(@Valid @PathVariable Long bookingId,
             @RequestBody List<GuestDto> guestDtoList){
 
         return ResponseEntity.ok(bookingService.addGuests(bookingId,guestDtoList));
@@ -31,8 +32,7 @@ public class HotelBookingController {
 
     @PostMapping("/{bookingId}/payments")
     public ResponseEntity<Map<String,String>>initiatePayment(@PathVariable Long bookingId){
-
-        String sessionUrl=bookingService.initiatePayment(bookingId);
+        String sessionUrl = bookingService.initiatePayment(bookingId);
         return ResponseEntity.ok(Map.of("sessionUrl",sessionUrl));
     }
 

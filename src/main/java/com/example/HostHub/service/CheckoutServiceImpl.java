@@ -53,7 +53,7 @@ public class CheckoutServiceImpl implements CheckoutService{
                                                     .setProductData(
                                                             SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                                                     .setName(booking.getHotel().getName() +" : "+booking.getRoom().getType())
-                                                                    .setDescription("Booking ID : "+booking.getId())
+                                                                    .setDescription("Booking ID: "+booking.getId())
                                                                     .build()
                                                     )
                                                     .build()

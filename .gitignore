@@ -33,3 +33,7 @@ build/
 .vscode/
 # Custom Secrets
 src/main/resources/application.properties
+
+node_modules/
+dist/
+uploads/

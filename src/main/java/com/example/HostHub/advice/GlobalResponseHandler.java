@@ -21,6 +21,10 @@ public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
                                   ServerHttpRequest request, ServerHttpResponse response) {
 
 
+        if (body == null) {
+            return null;
+        }
+
         if (body instanceof ApiResponse<?>) {
             return body;
         }

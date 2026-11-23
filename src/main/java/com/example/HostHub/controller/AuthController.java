@@ -8,6 +8,7 @@ import com.example.HostHub.dto.UserDto;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<UserDto> signUp(@RequestBody SignUpRequestDto signUpRequestDto){
+    public ResponseEntity<UserDto> signUp(@Valid @RequestBody SignUpRequestDto signUpRequestDto){
         return new ResponseEntity<>(authService.signUp(signUpRequestDto), HttpStatus.CREATED);
 
     }
@@ -51,7 +52,12 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponseDto>refresh(HttpServletRequest request){
 
-        String refreshToken= Arrays.stream(request.getCookies())
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            throw new AuthenticationServiceException("Refresh token not found with this Cookies");
+        }
+
+        String refreshToken= Arrays.stream(cookies)
                 .filter(cookie -> "refreshToken".equals(cookie.getName()))
                 .findFirst()
                 .map(Cookie::getValue)

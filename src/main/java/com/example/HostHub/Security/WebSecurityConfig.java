@@ -41,7 +41,9 @@ public class WebSecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth->auth
                         .requestMatchers("/admin/**").hasAnyRole("HOTEL_MANAGER")
-                        .requestMatchers("/bookings/**").authenticated()
+                        .requestMatchers("/bookings/**", "/users/**").authenticated()
+                        // ✅ FIX 2: Stripe webhook ko publicly accessible rakho (JWT nahi hota Stripe ke paas)
+                        .requestMatchers("/payments/webhook").permitAll()
                         .anyRequest().permitAll()
                 )
                 .exceptionHandling(exHandlingConfig->exHandlingConfig.accessDeniedHandler(accessDeniedHandler()));

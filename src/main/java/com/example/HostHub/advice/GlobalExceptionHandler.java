@@ -2,11 +2,13 @@ package com.example.HostHub.advice;
 
 
 import com.example.HostHub.exception.ResourseNotFoundException;
+import com.example.HostHub.exception.UnAuthorisedException;
 import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,6 +19,15 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+
+    @ExceptionHandler(UnAuthorisedException.class)
+    public ResponseEntity<ApiResponse<?>> handleUnauthorisedException(UnAuthorisedException ex){
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.UNAUTHORIZED)
+                .message(ex.getMessage())
+                .build();
+        return buildErrorResponseEntity(apiError);
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handelInternalServerError(Exception exception){
@@ -55,8 +66,8 @@ public class GlobalExceptionHandler {
         return buildErrorResponseEntity(apiError);
     }
 
-    @ExceptionHandler(ArithmeticException.class)
-    public ResponseEntity<ApiResponse<?>>handleAuthenticationException(ArithmeticException ex){
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<?>>handleAuthenticationException(AuthenticationException ex){
         ApiError apiError=ApiError.builder()
                 .status(HttpStatus.UNAUTHORIZED)
                 .message(ex.getMessage())

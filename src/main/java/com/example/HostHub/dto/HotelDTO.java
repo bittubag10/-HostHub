@@ -14,7 +14,7 @@ public class HotelDTO {
     private Long id;
 
     @NotBlank(message = "Hotel name cannot be empty")
-    @Size(min = 3, max = 15, message = "Name must be between 3 and 100 characters")
+    @Size(min = 3, max = 100, message = "Name must be between 3 and 100 characters")
     private String name;
 
     @NotBlank(message = "City is required")
