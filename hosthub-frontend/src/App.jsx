@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import axios from 'axios'
 import Navbar from './components/Navbar'
+import Footer from './components/Footer'
 import Spinner from './components/Spinner'
 import { ProtectedRoute, ManagerRoute } from './components/ProtectedRoute'
 import { useAuthStore } from './store/auth'
@@ -78,9 +79,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
-      <footer className="border-t border-brass/10 py-6 text-center text-xs text-muted">
-        HostHub — a boutique booking engine.
-      </footer>
+      <Footer />
     </div>
   )
 }

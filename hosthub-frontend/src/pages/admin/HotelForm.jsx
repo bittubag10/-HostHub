@@ -4,6 +4,16 @@ import api from '../../api/axios'
 import Spinner from '../../components/Spinner'
 import ErrorBanner from '../../components/ErrorBanner'
 import { getPhotoUrl } from '../../util/imageUrl'
+import {
+  UploadCloud,
+  Trash2,
+  Building2,
+  MapPin,
+  Mail,
+  Phone,
+  Sparkles,
+  ArrowLeft
+} from 'lucide-react'
 
 const emptyForm = {
   name: '',
@@ -26,18 +36,22 @@ export default function HotelForm() {
 
   useEffect(() => {
     if (!isEdit) return
-    api.get(`/admin/hotels/${hotelId}`).then((res) => {
-      const h = res.data
-      const currentPhotos = h.photo || h.photos || []
-      setPhotos(currentPhotos)
-      setForm({
-        name: h.name,
-        city: h.city,
-        photoText: currentPhotos.join(', '),
-        amenitiesText: (h.amenities || []).join(', '),
-        contactInfo: h.contactInfo || emptyForm.contactInfo,
+    api
+      .get(`/admin/hotels/${hotelId}`)
+      .then((res) => {
+        const h = res.data
+        const currentPhotos = h.photo || h.photos || []
+        setPhotos(currentPhotos)
+        setForm({
+          name: h.name,
+          city: h.city,
+          photoText: currentPhotos.join(', '),
+          amenitiesText: (h.amenities || []).join(', '),
+          contactInfo: h.contactInfo || emptyForm.contactInfo,
+        })
       })
-    }).catch(setError).finally(() => setLoading(false))
+      .catch(setError)
+      .finally(() => setLoading(false))
   }, [hotelId])
 
   const handleFileUpload = async (e) => {
@@ -108,50 +122,123 @@ export default function HotelForm() {
     }
   }
 
-  if (loading) return <Spinner label="Loading property" />
+  if (loading) return <Spinner label="Loading property details" />
 
   return (
-    <div className="max-w-xl">
-      <h1 className="font-display text-3xl text-ivory mb-6">{isEdit ? 'Edit property' : 'Add a property'}</h1>
-      <form onSubmit={submit} className="space-y-4">
-        {error && <ErrorBanner error={error} />}
-        <Field label="Property name">
-          <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" />
-        </Field>
-        <Field label="City">
-          <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="input" />
-        </Field>
-
-        {/* Real photo management section */}
+    <div className="max-w-3xl space-y-6">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          className="p-2 rounded-xl border border-zinc-200 bg-white hover:bg-stone-50 text-zinc-600 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
         <div>
-          <label className="text-[10px] uppercase tracking-widest text-muted">Photos</label>
+          <h1 className="font-display text-2xl font-bold text-zinc-900">
+            {isEdit ? 'Edit Boutique Property' : 'List New Property'}
+          </h1>
+          <p className="text-xs text-zinc-500">
+            Provide property profile details, contact information, and upload high-res images.
+          </p>
+        </div>
+      </div>
+
+      {error && <ErrorBanner error={error} />}
+
+      <form onSubmit={submit} className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 text-xs">
+        {/* Basic Property Info */}
+        <div className="space-y-4">
+          <h3 className="font-display text-sm font-bold text-zinc-900 border-b border-zinc-100 pb-2 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-brand" />
+            General Information
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                Hotel Name
+              </label>
+              <input
+                required
+                placeholder="e.g. The Grand Azure Palace"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="input text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                City / Location
+              </label>
+              <input
+                required
+                placeholder="e.g. Goa"
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                className="input text-xs"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+              Curated Amenities (Comma-Separated)
+            </label>
+            <input
+              placeholder="WiFi, Pool, AC, Parking, Breakfast, Spa"
+              value={form.amenitiesText}
+              onChange={(e) => setForm({ ...form, amenitiesText: e.target.value })}
+              className="input text-xs"
+            />
+          </div>
+        </div>
+
+        {/* Photo Gallery & Upload Dropzone */}
+        <div className="space-y-4 pt-2">
+          <h3 className="font-display text-sm font-bold text-zinc-900 border-b border-zinc-100 pb-2 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-brand" />
+            Property Images
+          </h3>
+
           {isEdit ? (
-            <div className="mt-2 space-y-3">
-              <div className="flex items-center gap-3">
+            <div className="space-y-3">
+              {/* Upload Dropzone */}
+              <label className="border-2 border-dashed border-zinc-200 hover:border-brand rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer bg-stone-50/50 hover:bg-brand-50/30 transition-all text-center">
+                <UploadCloud className="w-8 h-8 text-brand" />
+                <div>
+                  <span className="font-semibold text-zinc-800 text-xs">Click to upload photos</span>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">JPEG, PNG, WebP up to 5MB each</p>
+                </div>
                 <input
                   type="file"
                   multiple
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleFileUpload}
                   disabled={uploading}
-                  className="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-surface-raised file:text-brass-light hover:file:bg-surface cursor-pointer"
+                  className="hidden"
                 />
-                {uploading && <span className="text-xs text-brass-light animate-pulse">Uploading…</span>}
-              </div>
+              </label>
 
+              {uploading && <p className="text-xs text-brand font-mono">Uploading photos to disk…</p>}
+
+              {/* Thumbnail Grid */}
               {photos.length > 0 && (
-                <div className="grid grid-cols-4 gap-2.5 pt-1">
-                  {photos.map((p, idx) => (
-                    <div key={idx} className="relative group w-full h-20 rounded bg-surface-raised overflow-hidden border border-brass/15">
-                      <img src={getPhotoUrl(p)} alt={`hotel-${idx}`} className="w-full h-full object-cover" />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  {photos.map((url, idx) => (
+                    <div
+                      key={idx}
+                      className="group relative aspect-video rounded-xl overflow-hidden bg-stone-100 border border-zinc-200 shadow-sm"
+                    >
+                      <img src={getPhotoUrl(url)} alt={`Hotel ${idx}`} className="w-full h-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => handleDeletePhoto(p)}
-                        disabled={uploading}
-                        className="absolute top-1 right-1 bg-ink/80 text-rose-400 hover:text-rose-200 text-xs rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDeletePhoto(url)}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-md bg-white/90 text-rose-600 hover:bg-rose-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100 shadow-sm"
                         title="Delete photo"
                       >
-                        ✕
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
@@ -159,48 +246,100 @@ export default function HotelForm() {
               )}
             </div>
           ) : (
-            <p className="text-xs text-muted mt-1">Save this property first, then upload local photo files here.</p>
+            <div>
+              <p className="text-[11px] text-zinc-400 italic mb-2">
+                * Real multi-file image uploading is unlocked immediately after creating the property profile.
+              </p>
+              <input
+                placeholder="Initial Photo URLs (comma-separated, optional)"
+                value={form.photoText}
+                onChange={(e) => setForm({ ...form, photoText: e.target.value })}
+                className="input text-xs"
+              />
+            </div>
           )}
+        </div>
 
-          <div className="mt-3">
-            <span className="text-[10px] uppercase tracking-wider text-muted">Or enter Photo URLs (comma separated)</span>
-            <input value={form.photoText} onChange={(e) => setForm({ ...form, photoText: e.target.value })} className="input mt-1" placeholder="https://..., /uploads/..." />
+        {/* Contact Information */}
+        <div className="space-y-4 pt-2">
+          <h3 className="font-display text-sm font-bold text-zinc-900 border-b border-zinc-100 pb-2 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-brand" />
+            Contact & Address
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                Full Street Address
+              </label>
+              <input
+                required
+                placeholder="123 Ocean Drive, Candolim"
+                value={form.contactInfo.address}
+                onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, address: e.target.value } })}
+                className="input text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                Contact Phone
+              </label>
+              <input
+                required
+                placeholder="+91 98765 43210"
+                value={form.contactInfo.phoneNumber}
+                onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, phoneNumber: e.target.value } })}
+                className="input text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                Concierge Email
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="concierge@hotel.com"
+                value={form.contactInfo.email}
+                onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, email: e.target.value } })}
+                className="input text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                Map Location / Coordinates
+              </label>
+              <input
+                placeholder="15.5173° N, 73.7663° E"
+                value={form.contactInfo.location}
+                onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, location: e.target.value } })}
+                className="input text-xs font-mono"
+              />
+            </div>
           </div>
         </div>
 
-        <Field label="Amenities (comma separated)">
-          <input value={form.amenitiesText} onChange={(e) => setForm({ ...form, amenitiesText: e.target.value })} className="input" placeholder="WiFi, Pool, Breakfast" />
-        </Field>
-
-        <p className="text-xs uppercase tracking-widest text-brass font-mono pt-2">Contact info</p>
-        <Field label="Address">
-          <input required value={form.contactInfo.address} onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, address: e.target.value } })} className="input" />
-        </Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Phone (10 digits)">
-            <input required pattern="[0-9]{10}" value={form.contactInfo.phoneNumber} onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, phoneNumber: e.target.value } })} className="input" />
-          </Field>
-          <Field label="Contact email">
-            <input required type="email" value={form.contactInfo.email} onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, email: e.target.value } })} className="input" />
-          </Field>
+        {/* Action Buttons */}
+        <div className="pt-6 border-t border-zinc-100 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            className="btn-secondary text-xs px-4 py-2.5 rounded-xl"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary text-xs px-6 py-2.5 rounded-xl"
+          >
+            {saving ? 'Saving property…' : isEdit ? 'Save Changes' : 'Create Property Profile'}
+          </button>
         </div>
-        <Field label="Location link / coordinates">
-          <input required value={form.contactInfo.location} onChange={(e) => setForm({ ...form, contactInfo: { ...form.contactInfo, location: e.target.value } })} className="input" />
-        </Field>
-
-        <button disabled={saving} className="bg-brass text-ink font-medium px-6 py-2.5 rounded-md hover:bg-brass-light disabled:opacity-50">
-          {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create property'}
-        </button>
       </form>
-    </div>
-  )
-}
-
-function Field({ label, children }) {
-  return (
-    <div>
-      <label className="text-[10px] uppercase tracking-widest text-muted">{label}</label>
-      <div className="mt-1">{children}</div>
     </div>
   )
 }

@@ -2,6 +2,17 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../api/axios'
 import ErrorBanner from '../components/ErrorBanner'
+import {
+  CheckCircle2,
+  Users,
+  ShieldCheck,
+  CreditCard,
+  Plus,
+  Trash2,
+  Lock,
+  ArrowRight,
+  Clock
+} from 'lucide-react'
 
 const emptyGuest = () => ({ name: '', gender: 'MALE', age: '' })
 
@@ -59,83 +70,204 @@ export default function BookingGuests() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-14">
-      <p className="text-xs uppercase tracking-[0.3em] text-brass font-mono mb-2">Booking #{bookingId}</p>
-      <h1 className="font-display text-3xl text-ivory mb-8">Who's staying?</h1>
+    <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+      {/* 3-Step Progress Stepper */}
+      <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
+        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="flex items-center justify-center gap-2 text-brand font-semibold">
+            <span className="w-5 h-5 rounded-full bg-brand text-white flex items-center justify-center text-[10px]">
+              ✓
+            </span>
+            <span>1. Dates & Suite</span>
+          </div>
 
-      {error && <div className="mb-5"><ErrorBanner error={error} /></div>}
+          <div className="flex items-center justify-center gap-2 text-brand font-bold border-b-2 border-brand pb-1">
+            <span className="w-5 h-5 rounded-full bg-brand-100 text-brand flex items-center justify-center text-[10px] font-mono">
+              2
+            </span>
+            <span>2. Guest Details</span>
+          </div>
 
-      <div className="space-y-4">
-        {guests.map((g, i) => (
-          <div key={i} className="bg-surface border border-brass/15 rounded-lg p-4 grid grid-cols-12 gap-3 items-end">
-            <div className="col-span-5">
-              <label className="text-[10px] uppercase tracking-widest text-muted">Full name</label>
-              <input
-                required
-                value={g.name}
-                onChange={(e) => updateGuest(i, 'name', e.target.value)}
-                className="mt-1 w-full bg-surface-raised border border-brass/10 rounded-md px-3 py-2 text-ivory focus:outline-none focus:border-brass"
-              />
+          <div className="flex items-center justify-center gap-2 text-zinc-400 font-medium">
+            <span className="w-5 h-5 rounded-full bg-stone-100 text-zinc-400 flex items-center justify-center text-[10px] font-mono">
+              3
+            </span>
+            <span>3. Stripe Payment</span>
+          </div>
+        </div>
+      </div>
+
+      {error && <ErrorBanner error={error} />}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        {/* Left Column: Guest Registration Form */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-brand font-mono tracking-wider">
+                Booking Reference #{bookingId}
+              </span>
+              <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-zinc-900 mt-1">
+                Who will be staying?
+              </h1>
+              <p className="text-xs text-zinc-500 mt-1">
+                Please enter the names of all guests checking in. Primary guest ID is verified at arrival.
+              </p>
             </div>
-            <div className="col-span-3">
-              <label className="text-[10px] uppercase tracking-widest text-muted">Gender</label>
-              <select
-                value={g.gender}
-                onChange={(e) => updateGuest(i, 'gender', e.target.value)}
-                className="mt-1 w-full bg-surface-raised border border-brass/10 rounded-md px-3 py-2 text-ivory focus:outline-none focus:border-brass"
+
+            <div className="space-y-4">
+              {guests.map((g, i) => (
+                <div
+                  key={i}
+                  className="bg-stone-50 border border-zinc-200/80 rounded-2xl p-4 space-y-3 relative group"
+                >
+                  <div className="flex items-center justify-between border-b border-zinc-200/50 pb-2">
+                    <span className="text-xs font-bold text-zinc-700 flex items-center gap-1.5 font-mono">
+                      <Users className="w-3.5 h-3.5 text-brand" />
+                      Guest {i + 1}
+                    </span>
+                    {guests.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeGuestRow(i)}
+                        className="text-zinc-400 hover:text-rose-600 transition-colors text-xs flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <div className="sm:col-span-6">
+                      <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        required
+                        placeholder="As shown on passport / ID"
+                        value={g.name}
+                        onChange={(e) => updateGuest(i, 'name', e.target.value)}
+                        className="input text-xs"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-4">
+                      <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                        Gender
+                      </label>
+                      <select
+                        value={g.gender}
+                        onChange={(e) => updateGuest(i, 'gender', e.target.value)}
+                        className="input text-xs cursor-pointer"
+                      >
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] uppercase font-bold text-zinc-500 mb-1">
+                        Age
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        required
+                        placeholder="Age"
+                        value={g.age}
+                        onChange={(e) => updateGuest(i, 'age', e.target.value)}
+                        className="input text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addGuestRow}
+                className="inline-flex items-center gap-2 text-xs font-semibold text-brand hover:text-brand-800 transition-colors py-1"
               >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
+                <Plus className="w-4 h-4" />
+                Add Another Guest
+              </button>
             </div>
-            <div className="col-span-2">
-              <label className="text-[10px] uppercase tracking-widest text-muted">Age</label>
-              <input
-                type="number"
-                min={1}
-                max={80}
-                required
-                value={g.age}
-                onChange={(e) => updateGuest(i, 'age', e.target.value)}
-                className="mt-1 w-full bg-surface-raised border border-brass/10 rounded-md px-3 py-2 text-ivory focus:outline-none focus:border-brass"
-              />
+
+            {/* Form Actions */}
+            <div className="pt-6 border-t border-zinc-100 flex flex-wrap items-center gap-3">
+              <button
+                onClick={saveGuests}
+                disabled={savingGuests}
+                className={`text-xs px-5 py-2.5 rounded-xl font-medium transition-all ${
+                  saved
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'btn-secondary'
+                }`}
+              >
+                {savingGuests ? 'Saving…' : saved ? 'Guests Saved ✓' : 'Save Guest Details'}
+              </button>
+
+              <button
+                onClick={payNow}
+                disabled={payingNow || !saved}
+                className="btn-primary text-xs px-6 py-2.5 rounded-xl ml-auto"
+              >
+                {payingNow ? (
+                  'Connecting to Stripe…'
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4" />
+                    <span>Proceed to Stripe Checkout</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
             </div>
-            <div className="col-span-2">
-              {guests.length > 1 && (
-                <button type="button" onClick={() => removeGuestRow(i)} className="text-danger text-xs hover:underline">
-                  Remove
-                </button>
-              )}
+
+            {!saved && (
+              <p className="text-[11px] text-zinc-400 text-center font-mono">
+                * Please save guest details before continuing to secure Stripe checkout.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Live Booking Summary Sidebar */}
+        <div className="space-y-4">
+          <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm space-y-4">
+            <h3 className="font-display text-base font-bold text-zinc-900 border-b border-zinc-100 pb-3">
+              Booking Overview
+            </h3>
+
+            <div className="space-y-2 text-xs text-zinc-600">
+              <div className="flex justify-between">
+                <span>Hold Status</span>
+                <span className="font-medium text-amber-600 flex items-center gap-1 font-mono">
+                  <Clock className="w-3.5 h-3.5" /> 15 min lock
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Payment Protection</span>
+                <span className="font-medium text-emerald-600 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Stripe Secure
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-zinc-100">
+              <button
+                onClick={cancelBooking}
+                className="w-full text-xs text-zinc-500 hover:text-rose-600 transition-colors text-center py-1"
+              >
+                Cancel and release hold
+              </button>
             </div>
           </div>
-        ))}
-
-        <button type="button" onClick={addGuestRow} className="text-brass-light text-sm hover:underline">
-          + Add another guest
-        </button>
+        </div>
       </div>
-
-      <div className="flex flex-wrap gap-3 mt-8">
-        <button
-          onClick={saveGuests}
-          disabled={savingGuests}
-          className="bg-surface-raised border border-brass/30 text-ivory px-5 py-2.5 rounded-md hover:border-brass disabled:opacity-50"
-        >
-          {savingGuests ? 'Saving…' : saved ? 'Guests saved ✓' : 'Save guests'}
-        </button>
-        <button
-          onClick={payNow}
-          disabled={payingNow || !saved}
-          className="bg-brass text-ink font-medium px-5 py-2.5 rounded-md hover:bg-brass-light disabled:opacity-50"
-        >
-          {payingNow ? 'Redirecting to payment…' : 'Proceed to payment'}
-        </button>
-        <button onClick={cancelBooking} className="text-danger text-sm ml-auto hover:underline">
-          Cancel booking
-        </button>
-      </div>
-      {!saved && <p className="text-xs text-muted mt-3">Save guest details before proceeding to payment.</p>}
     </div>
   )
 }
