@@ -25,7 +25,7 @@ public class WebhookController {
         try {
             Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
             bookingService.capturePayment(event);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok().build();
 
         } catch (SignatureVerificationException e) {
             throw new RuntimeException("Stripe signature verification failed!", e);

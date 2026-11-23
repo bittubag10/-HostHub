@@ -32,4 +32,6 @@ public class BookingDto {
     private LocalDateTime updatedAt;
     private BookingStatus bookingStatus;
     private Set<GuestDto> guests;
+    private LocalDateTime expiresAt;
+    private String idempotencyKey;
 }

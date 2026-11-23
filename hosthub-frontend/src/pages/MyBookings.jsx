@@ -102,6 +102,11 @@ export default function MyBookings() {
                     Continue booking
                   </Link>
                 )}
+                {b.bookingStatus === 'EXPIRED' && (
+                  <span className="text-xs text-danger/80 italic font-mono">
+                    Reservation expired (auto-released)
+                  </span>
+                )}
               </div>
 
               {b.bookingStatus === 'CONFIRMED' && (

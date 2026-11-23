@@ -45,6 +45,8 @@ public class BookingServiceImpl implements BookingService {
     private final ModelMapper modelMapper;
     private final CheckoutService checkoutService;
     private final PricingService pricingService;
+    private final ProcessedWebhookEventRepository processedWebhookEventRepository;
+    private final EmailNotificationService emailNotificationService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -52,8 +54,31 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingDto initialiseBooking(BookingRequest bookingRequest) {
-        log.info("Initialising booking for hotel : {}, room: {}, date {}-{}", bookingRequest.getHotelId(),
-                bookingRequest.getRoomId(), bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate());
+        return initialiseBooking(bookingRequest, null);
+    }
+
+    @Override
+    @Transactional
+    public BookingDto initialiseBooking(BookingRequest bookingRequest, String idempotencyKey) {
+        log.info("Initialising booking for hotel : {}, room: {}, date {}-{}, idempotencyKey: {}",
+                bookingRequest.getHotelId(), bookingRequest.getRoomId(),
+                bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate(), idempotencyKey);
+
+        User currentUser = getCurrentUser();
+
+        // Idempotency check: return existing booking if key was already submitted by this user
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            var existingOpt = bookingRepository.findByIdempotencyKey(idempotencyKey);
+            if (existingOpt.isPresent()) {
+                Booking existing = existingOpt.get();
+                if (existing.getUser() != null && existing.getUser().getId().equals(currentUser.getId())) {
+                    log.info("Idempotent request hit for key {}. Returning existing booking ID: {}", idempotencyKey, existing.getId());
+                    return modelMapper.map(existing, BookingDto.class);
+                } else {
+                    throw new UnAuthorisedException("Idempotency key belongs to another user");
+                }
+            }
+        }
 
         Hotel hotel = hotelRepository.findById(bookingRequest.getHotelId()).orElseThrow(() ->
                 new ResourseNotFoundException("Hotel not found with id: " + bookingRequest.getHotelId()));
@@ -90,9 +115,11 @@ public class BookingServiceImpl implements BookingService {
                 .room(room)
                 .checkInDate(bookingRequest.getCheckInDate())
                 .checkOutDate(bookingRequest.getCheckOutDate())
-                .user(getCurrentUser())
+                .user(currentUser)
                 .roomsCount(bookingRequest.getRoomCount())
                 .amount(totalPrice)
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .idempotencyKey(idempotencyKey)
                 .build();
 
         booking = bookingRepository.save(booking);
@@ -204,6 +231,12 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public void capturePayment(Event event) {
         if ("checkout.session.completed".equals(event.getType())) {
+            // Idempotency check: duplicate Stripe webhook deliveries safely ignored
+            if (processedWebhookEventRepository.existsByEventId(event.getId())) {
+                log.info("Duplicate Stripe webhook event detected with id: {}, skipping duplicate processing", event.getId());
+                return;
+            }
+
             Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
             if (session == null) return;
 
@@ -239,6 +272,16 @@ public class BookingServiceImpl implements BookingService {
                     actualEndDate,
                     booking.getRoomsCount()
             );
+
+            // Record processed event for idempotency
+            processedWebhookEventRepository.save(new ProcessedWebhookEvent(event.getId(), event.getType()));
+
+            // Send async booking confirmation email
+            try {
+                emailNotificationService.sendBookingConfirmation(booking);
+            } catch (Exception e) {
+                log.error("Failed to queue booking confirmation email for booking {}: {}", booking.getId(), e.getMessage());
+            }
 
             log.info("Successfully confirmed the booking for booking id: {}", booking.getId());
         } else {
@@ -283,6 +326,13 @@ public class BookingServiceImpl implements BookingService {
             log.info("Refund processed successfully for booking id: {}", bookingId);
         } catch (StripeException e) {
             throw new RuntimeException("Refund processing failed on Stripe gateway: " + e.getMessage(), e);
+        }
+
+        // Send async cancellation email
+        try {
+            emailNotificationService.sendBookingCancellation(booking);
+        } catch (Exception e) {
+            log.error("Failed to queue cancellation email for booking {}: {}", bookingId, e.getMessage());
         }
     }
 

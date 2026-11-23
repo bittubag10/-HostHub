@@ -14,8 +14,10 @@ import com.example.HostHub.repository.BookingRepository;
 import com.example.HostHub.repository.GuestRepository;
 import com.example.HostHub.repository.HotelRepository;
 import com.example.HostHub.repository.InventoryRepository;
+import com.example.HostHub.repository.ProcessedWebhookEventRepository;
 import com.example.HostHub.repository.RoomRepository;
 import com.example.HostHub.strategy.PricingService;
+import com.stripe.model.Event;
 import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.RefundCreateParams;
@@ -71,6 +73,12 @@ class BookingServiceImplTest {
 
     @Mock
     private PricingService pricingService;
+
+    @Mock
+    private ProcessedWebhookEventRepository processedWebhookEventRepository;
+
+    @Mock
+    private EmailNotificationService emailNotificationService;
 
     @InjectMocks
     private BookingServiceImpl bookingService;
@@ -310,5 +318,59 @@ class BookingServiceImplTest {
                 bookingService.cancelBooking(bookingId));
 
         verify(inventoryRepository, never()).cancelBooking(any(), any(), any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("Idempotency: duplicate Idempotency-Key returns existing booking without locking inventory")
+    void testInitialiseBooking_DuplicateIdempotencyKey_ReturnsExistingBooking() {
+        String key = "test-uuid-idempotency-key";
+        Booking existingBooking = Booking.builder()
+                .id(777L)
+                .hotel(testHotel)
+                .room(testRoom)
+                .user(currentUser)
+                .bookingStatus(BookingStatus.RESERVED)
+                .idempotencyKey(key)
+                .build();
+
+        BookingDto expectedDto = new BookingDto();
+        expectedDto.setId(777L);
+
+        when(bookingRepository.findByIdempotencyKey(key)).thenReturn(Optional.of(existingBooking));
+        when(modelMapper.map(existingBooking, BookingDto.class)).thenReturn(expectedDto);
+
+        BookingRequest request = new BookingRequest();
+        request.setHotelId(1L);
+        request.setRoomId(10L);
+        request.setCheckInDate(LocalDate.now().plusDays(1));
+        request.setCheckOutDate(LocalDate.now().plusDays(3));
+        request.setRoomCount(1);
+
+        BookingDto result = bookingService.initialiseBooking(request, key);
+
+        assertNotNull(result);
+        assertEquals(777L, result.getId());
+
+        // Verify that NO inventory was locked or initialized
+        verify(inventoryRepository, never()).findAndLockAvailableInventory(any(), any(), any(), anyInt());
+        verify(inventoryRepository, never()).initBooking(any(), any(), any(), anyInt());
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Idempotency: duplicate Stripe eventId skips confirmation and inventory changes")
+    void testCapturePayment_DuplicateStripeEventId_SkipsProcessing() {
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("checkout.session.completed");
+        when(event.getId()).thenReturn("evt_duplicate_999");
+
+        when(processedWebhookEventRepository.existsByEventId("evt_duplicate_999")).thenReturn(true);
+
+        bookingService.capturePayment(event);
+
+        // Verify that no booking lookup, inventory locking, or confirmation happened
+        verify(bookingRepository, never()).findByPaymentSessionIdIgnoreCase(any());
+        verify(inventoryRepository, never()).confirmBooking(any(), any(), any(), anyInt());
+        verify(emailNotificationService, never()).sendBookingConfirmation(any());
     }
 }

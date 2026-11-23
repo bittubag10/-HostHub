@@ -75,13 +75,23 @@ export default function HotelDetails() {
     setError(null)
     setBooking(true)
     try {
-      const res = await api.post('/bookings/init', {
-        hotelId: Number(hotelId),
-        roomId: room.id,
-        checkInDate: dates.checkInDate,
-        checkOutDate: dates.checkOutDate,
-        roomCount: Number(dates.roomCount),
-      })
+      const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+      const res = await api.post(
+        '/bookings/init',
+        {
+          hotelId: Number(hotelId),
+          roomId: room.id,
+          checkInDate: dates.checkInDate,
+          checkOutDate: dates.checkOutDate,
+          roomCount: Number(dates.roomCount),
+        },
+        {
+          headers: { 'Idempotency-Key': idempotencyKey },
+        }
+      )
       navigate(`/bookings/${res.data.id}/guests`)
     } catch (err) {
       setError(err)

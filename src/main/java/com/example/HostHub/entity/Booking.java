@@ -71,4 +71,9 @@ public class Booking {
     @Column(unique = true)
     private String paymentSessionId;
 
+    private LocalDateTime expiresAt;
+
+    @Column(unique = true)
+    private String idempotencyKey;
+
 }

@@ -20,6 +20,13 @@ public interface BookingRepository extends JpaRepository<Booking,Long> {
 
     List<Booking>findByUser(User user);
 
+    Optional<Booking> findByIdempotencyKey(String idempotencyKey);
+
+    List<Booking> findByBookingStatusInAndExpiresAtBefore(
+            List<com.example.HostHub.Enum.BookingStatus> statuses,
+            LocalDateTime expiresAt
+    );
+
 //    Optional<Booking> findByPaymentSessionId(String sessionId);
     Optional<Booking> findByPaymentSessionIdIgnoreCase(String sessionId);
 }
