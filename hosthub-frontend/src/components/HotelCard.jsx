@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
+import { getPhotoUrl } from '../util/imageUrl'
 
 export default function HotelCard({ hotelPriceDto, searchParams }) {
   const hotel = hotelPriceDto.hotel
   const price = hotelPriceDto.price
-  const photo = hotel?.photo?.[0]
+  const rawPhoto = hotel?.photo?.[0] || hotel?.photos?.[0]
+  const photo = getPhotoUrl(rawPhoto)
 
   return (
     <Link

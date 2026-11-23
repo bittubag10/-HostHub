@@ -22,4 +22,8 @@ public interface HotelService {
     HotelInfoDto getHotelInfoById(Long hotelId);
 
     List<HotelDTO> getAllHotels();
+
+    HotelDTO addPhotos(Long hotelId, org.springframework.web.multipart.MultipartFile[] files);
+
+    HotelDTO removePhoto(Long hotelId, String photoUrl);
 }

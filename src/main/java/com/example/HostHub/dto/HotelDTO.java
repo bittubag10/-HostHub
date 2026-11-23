@@ -1,6 +1,8 @@
 package com.example.HostHub.dto;
 
 import com.example.HostHub.entity.HotelContactInfo;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -20,7 +22,8 @@ public class HotelDTO {
     @NotBlank(message = "City is required")
     private String city;
 
-    @NotEmpty(message = "At least one photo URL is required")
+    @JsonProperty("photo")
+    @JsonAlias({"photo", "photos"})
     private String[] photo;
 
     @NotEmpty(message = "Amenities cannot be empty")

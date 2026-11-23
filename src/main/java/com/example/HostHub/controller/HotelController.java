@@ -9,9 +9,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -79,5 +80,17 @@ public class HotelController {
         if (endDate == null)endDate = LocalDate.now();
 
         return ResponseEntity.ok(bookingService.getHotelReport(hotelId,startDate,endDate));
+    }
+
+    @PostMapping(value = "/{hotelId}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<HotelDTO> addHotelPhotos(@PathVariable Long hotelId,
+                                                   @RequestParam("files") MultipartFile[] files) {
+        return ResponseEntity.ok(hotelService.addPhotos(hotelId, files));
+    }
+
+    @DeleteMapping("/{hotelId}/photos")
+    public ResponseEntity<HotelDTO> removeHotelPhoto(@PathVariable Long hotelId,
+                                                     @RequestParam("photoUrl") String photoUrl) {
+        return ResponseEntity.ok(hotelService.removePhoto(hotelId, photoUrl));
     }
 }

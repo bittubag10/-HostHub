@@ -4,8 +4,10 @@ import com.example.HostHub.dto.RoomDTO;
 import com.example.HostHub.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -51,4 +53,17 @@ public class RoomAdminController {
         return ResponseEntity.ok(roomService.updateRoomById(hotelId,roomId,roomDTO));
     }
 
+    @PostMapping(value = "/{roomId}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<RoomDTO> addRoomPhotos(@PathVariable Long hotelId,
+                                                 @PathVariable Long roomId,
+                                                 @RequestParam("files") MultipartFile[] files) {
+        return ResponseEntity.ok(roomService.addPhotos(hotelId, roomId, files));
+    }
+
+    @DeleteMapping("/{roomId}/photos")
+    public ResponseEntity<RoomDTO> removeRoomPhoto(@PathVariable Long hotelId,
+                                                   @PathVariable Long roomId,
+                                                   @RequestParam("photoUrl") String photoUrl) {
+        return ResponseEntity.ok(roomService.removePhoto(hotelId, roomId, photoUrl));
+    }
 }

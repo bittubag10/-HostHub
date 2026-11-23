@@ -17,6 +17,10 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +36,7 @@ public class HotelServiceImpl implements HotelService {
     private final RoomRepository roomRepository;
     private final ModelMapper modelMapper;
     private final PricingUpdateService pricingUpdateService;
+    private final StorageService storageService;
 
     @Override
     public HotelDTO createNewHotel(HotelDTO hotelDTO) {
@@ -151,5 +156,56 @@ public class HotelServiceImpl implements HotelService {
         return hotels.stream()
                 .map((element) -> modelMapper.map(element, HotelDTO.class))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public HotelDTO addPhotos(Long hotelId, MultipartFile[] files) {
+        log.info("Adding photos to hotel with id: {}", hotelId);
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourseNotFoundException("Hotel not found with id: " + hotelId));
+
+        User user = getCurrentUser();
+        if (hotel.getOwner() == null || !user.getId().equals(hotel.getOwner().getId())) {
+            throw new UnAuthorisedException("This user does not own this hotel with id : " + hotelId);
+        }
+
+        List<String> newUrls = storageService.storeFiles(files);
+        if (!newUrls.isEmpty()) {
+            List<String> photoList = new ArrayList<>();
+            if (hotel.getPhoto() != null) {
+                photoList.addAll(Arrays.asList(hotel.getPhoto()));
+            }
+            photoList.addAll(newUrls);
+            hotel.setPhoto(photoList.toArray(new String[0]));
+            hotel = hotelRepository.save(hotel);
+        }
+
+        return modelMapper.map(hotel, HotelDTO.class);
+    }
+
+    @Override
+    @Transactional
+    public HotelDTO removePhoto(Long hotelId, String photoUrl) {
+        log.info("Removing photo {} from hotel with id: {}", photoUrl, hotelId);
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourseNotFoundException("Hotel not found with id: " + hotelId));
+
+        User user = getCurrentUser();
+        if (hotel.getOwner() == null || !user.getId().equals(hotel.getOwner().getId())) {
+            throw new UnAuthorisedException("This user does not own this hotel with id : " + hotelId);
+        }
+
+        if (hotel.getPhoto() != null && photoUrl != null) {
+            List<String> photoList = new ArrayList<>(Arrays.asList(hotel.getPhoto()));
+            boolean removed = photoList.remove(photoUrl.trim());
+            if (removed) {
+                storageService.deleteFile(photoUrl);
+                hotel.setPhoto(photoList.toArray(new String[0]));
+                hotel = hotelRepository.save(hotel);
+            }
+        }
+
+        return modelMapper.map(hotel, HotelDTO.class);
     }
 }

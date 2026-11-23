@@ -40,6 +40,7 @@ public class WebSecurityConfig {
                 .sessionManagement(sessionConfig->sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth->auth
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/admin/**").hasAnyRole("HOTEL_MANAGER")
                         .requestMatchers("/bookings/**", "/users/**").authenticated()
                         // ✅ FIX 2: Stripe webhook ko publicly accessible rakho (JWT nahi hota Stripe ke paas)

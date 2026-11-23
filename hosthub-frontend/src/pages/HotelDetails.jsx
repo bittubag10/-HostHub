@@ -4,6 +4,7 @@ import api from '../api/axios'
 import Spinner from '../components/Spinner'
 import ErrorBanner from '../components/ErrorBanner'
 import { useAuthStore } from '../store/auth'
+import { getPhotoUrl } from '../util/imageUrl'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -74,10 +75,10 @@ export default function HotelDetails() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
       <div className="grid md:grid-cols-2 gap-2 rounded-xl overflow-hidden mb-8 h-72">
-        {(hotel.photo || []).slice(0, 2).map((p, i) => (
-          <img key={i} src={p} alt={hotel.name} className="w-full h-full object-cover" />
+        {(hotel.photo || hotel.photos || []).slice(0, 2).map((p, i) => (
+          <img key={i} src={getPhotoUrl(p)} alt={hotel.name} className="w-full h-full object-cover" />
         ))}
-        {(!hotel.photo || hotel.photo.length === 0) && (
+        {(!hotel.photo || hotel.photo.length === 0) && (!hotel.photos || hotel.photos.length === 0) && (
           <div className="col-span-2 bg-surface flex items-center justify-center text-muted">No photos available</div>
         )}
       </div>
@@ -135,8 +136,8 @@ export default function HotelDetails() {
         {rooms.map((room) => (
           <div key={room.id} className="flex gap-5 bg-surface/60 border border-brass/10 rounded-lg p-4">
             <div className="w-36 h-28 shrink-0 rounded-md overflow-hidden bg-surface-raised">
-              {room.photo?.[0] ? (
-                <img src={room.photo[0]} alt={room.type} className="w-full h-full object-cover" />
+              {(room.photo?.[0] || room.photos?.[0]) ? (
+                <img src={getPhotoUrl(room.photo?.[0] || room.photos?.[0])} alt={room.type} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted text-xs">No photo</div>
               )}

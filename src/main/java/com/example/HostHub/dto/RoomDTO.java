@@ -1,5 +1,7 @@
 package com.example.HostHub.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.math.BigDecimal;
@@ -17,7 +19,8 @@ public class RoomDTO {
     @Digits(integer = 8, fraction = 2, message = "Invalid price format")
     private BigDecimal basePrice;
 
-    @NotEmpty(message = "At least one room photo is required")
+    @JsonProperty("photo")
+    @JsonAlias({"photo", "photos"})
     private String[] photo;
 
     @NotEmpty(message = "Room amenities are required")
